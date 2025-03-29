@@ -8,7 +8,10 @@ import {
   createBrowserRouter,
   createRoutesFromElements,
 } from "react-router-dom";
+import { Toaster } from "sonner";
 import "./index.css";
+import HomePage from "./pages/home/page";
+import LoginPage from "./pages/login/page";
 import RegisterPage from "./pages/register/page";
 
 // react-query
@@ -24,7 +27,9 @@ const queryClient = new QueryClient({
 const router = createBrowserRouter(
   createRoutesFromElements(
     <>
+      <Route path="/" element={<HomePage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/login" element={<LoginPage />} />
     </>
   )
 );
@@ -33,6 +38,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
+      <Toaster richColors />
       <ReactQueryDevtools />
     </QueryClientProvider>
   </React.StrictMode>
