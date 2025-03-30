@@ -21,23 +21,22 @@ import {
 import supabase from "@/lib/supabase";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
+import axios from "axios";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { z } from "zod";
-
+import { apiClient } from "@/services/axios";
 const MAX_FILE_SIZE = 5000000; // 5MB
-function checkFileType(file) {
-  //console.log("file:", file);
+function checkFileType(file: File) {
   if (file?.name) {
     const fileType = file?.name?.split(".")?.pop();
     //console.log("fileType:", fileType);
     const allowedTypes = ["png", "jpg", "jpeg"];
-    if (allowedTypes.includes(fileType)) return true;
+    if (allowedTypes.includes(fileType as string)) return true;
   }
   return false;
 }
-
 const formSchema = z.object({
   username: z.string().min(3, {
     message: "Username must be at least 3 characters long",
@@ -45,6 +44,14 @@ const formSchema = z.object({
   full_name: z.string().min(3, {
     message: "Full name must be at least 3 characters long",
   }),
+  avatar: z
+    .any()
+    .refine((file) => file, "File is required")
+    .refine((file) => file?.size < MAX_FILE_SIZE, "Max size is 5MB.")
+    .refine(
+      (file) => checkFileType(file),
+      "Only .png, .jpg, .jpeg formats are supported."
+    ),
   email: z.string().email({
     message: "Please enter a valid email address",
   }),
@@ -64,10 +71,24 @@ function RegisterForm() {
       password: "",
       username: "",
       full_name: "",
+      avatar: undefined,
     },
   });
   const { mutate: registerUser, isPending } = useMutation({
     mutationFn: async (values: FormData) => {
+      // 1. Upload avatar to Cloudinary
+      const formData = new FormData();
+      formData.append("avatar", values.avatar);
+
+      const uploadResponse = await apiClient.post(
+        "/users/upload/avatar",
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+      console.log(" uploadResponse:", uploadResponse);
+      const { secure_url, public_id } = uploadResponse.data?.data || {};
       const { data, error } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
@@ -75,10 +96,12 @@ function RegisterForm() {
           data: {
             full_name: values.full_name,
             username: values.username,
+            avatar: secure_url,
+            avatar_public_id: public_id,
           },
         },
       });
-      console.log(" data:", data)
+      console.log(" data:", data);
 
       if (error) throw error;
       return data;
@@ -163,6 +186,28 @@ function RegisterForm() {
                   <FormLabel>Password </FormLabel>
                   <FormControl>
                     <Input placeholder="*******" {...field} type="password" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              className="grid gap-2"
+              control={form.control}
+              name="avatar"
+              render={({ field: { value, onChange, ...fieldProps } }) => (
+                <FormItem>
+                  <FormLabel>Avatar </FormLabel>
+                  <FormControl>
+                    <Input
+                      {...fieldProps}
+                      placeholder="Picture"
+                      type="file"
+                      accept="image/png, image/jpeg, image/jpg"
+                      onChange={(event) =>
+                        onChange(event.target.files && event.target.files[0])
+                      }
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

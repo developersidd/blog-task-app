@@ -6,6 +6,7 @@ import express, { NextFunction, Request, Response } from "express";
 import dotenv from "dotenv";
 import ApiError from "./utils/ApiError";
 import blogRouter from "./routes/blog.routes";
+import userRouter from "./routes/user.routes";
 // App Initialization
 const app = express();
 
@@ -26,6 +27,7 @@ app.get("/", (req: Request, res: Response) => {
   res.send("Welcome to Blog App API");
 });
 app.use("/api/v1/blogs", blogRouter);
+app.use("/api/v1/users", userRouter);
 
 // 404 Error Handler
 app.use((req, res, next) => {
